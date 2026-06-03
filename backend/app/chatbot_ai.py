@@ -11,7 +11,7 @@ client_ollama = Client(host="http://10.46.3.3:11434")
 import re
 
 def extraire_numero_article(question):
-    match = re.search(r"art(?:i?c?l?e?)?\s*(\d+)", question, re.IGNORECASE)
+    match = re.search(r"ar?t?i?c?l?e\s*(\d+)", question, re.IGNORECASE)
     return match.group(1) if match else None
 
 def rechercher(question, source=None):
