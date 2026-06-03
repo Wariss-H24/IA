@@ -12,6 +12,7 @@ router = APIRouter()
 
 class ChatRequest(BaseModel):
     question: str
+    source: str | None = None
 
 
 @router.get("/")
@@ -42,7 +43,7 @@ async def upload(file: UploadFile = File(...)):
 @router.post("/chat")
 def chat(data: ChatRequest):
 
-    chunks, sources = rechercher(data.question)
+    chunks, sources = rechercher(data.question, data.source)
     reponse = generer(data.question, chunks)
 
     return {
