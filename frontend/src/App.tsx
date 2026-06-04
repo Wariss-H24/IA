@@ -1,122 +1,152 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useState, useRef, useEffect } from 'react'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+const API = 'http://localhost:8000'
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+type Role = 'user' | 'bot'
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+interface Message {
+  role: Role
+  text: string
+  sources?: string[]
 }
 
-export default App
+export default function App() {
+  const [messages, setMessages] = useState<Message[]>([
+    { role: 'bot', text: 'Bonjour ! Posez-moi une question sur Benin-Loi-2017-20-Portant-code-du-numerique-en-Republique-du-Benin ou uploadez un PDF.' }
+  ])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadedFile, setUploadedFile] = useState<string | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, loading])
+
+  async function sendMessage() {
+    const question = input.trim()
+    if (!question || loading) return
+
+    setMessages(prev => [...prev, { role: 'user', text: question }])
+    setInput('')
+    setLoading(true)
+
+    try {
+      const res = await fetch(`${API}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, source: uploadedFile ?? undefined })
+      })
+      const data = await res.json()
+      setMessages(prev => [...prev, { role: 'bot', text: data.answer, sources: data.sources }])
+    } catch {
+      setMessages(prev => [...prev, { role: 'bot', text: 'Erreur de connexion au serveur.' }])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    const form = new FormData()
+    form.append('file', file)
+
+    try {
+      const res = await fetch(`${API}/upload`, { method: 'POST', body: form })
+      const data = await res.json()
+      setUploadedFile(data.filename)
+      setMessages(prev => [...prev, { role: 'bot', text: `✅ Document "${data.filename}" indexé avec succès. Vous pouvez maintenant poser vos questions.` }])
+    } catch {
+      setMessages(prev => [...prev, { role: 'bot', text: '❌ Erreur lors de l\'upload du document.' }])
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
+  return (
+    <div className="layout">
+      <header className="header">
+        <div className="header-inner">
+          <div className="logo">
+            <span className="logo-icon">⚖️</span>
+            <span>Chatbot Juridique</span>
+          </div>
+          {uploadedFile && (
+            <div className="active-doc">
+              <span className="doc-icon">📄</span>
+              <span className="doc-name">{uploadedFile}</span>
+              <button className="clear-doc" onClick={() => setUploadedFile(null)} title="Retirer le filtre">✕</button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      <main className="chat-area">
+        <div className="messages">
+          {messages.map((msg, i) => (
+            <div key={i} className={`message ${msg.role}`}>
+              <div className="bubble">
+                <p>{msg.text}</p>
+                {msg.sources && msg.sources.length > 0 && (
+                  <div className="sources">
+                    {msg.sources.map((s, j) => (
+                      <span key={j} className="source-tag">📄 {s}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="message bot">
+              <div className="bubble typing">
+                <span /><span /><span />
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+      </main>
+
+      <footer className="input-area">
+        <div className="input-inner">
+          <button
+            className="upload-btn"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            title="Uploader un PDF"
+          >
+            {uploading ? '⏳' : '📎'}
+          </button>
+          <input ref={fileRef} type="file" accept=".pdf" onChange={handleUpload} hidden />
+          <textarea
+            className="input-box"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Posez votre question..."
+            rows={1}
+            disabled={loading}
+          />
+          <button className="send-btn" onClick={sendMessage} disabled={loading || !input.trim()}>
+            Envoyer
+          </button>
+        </div>
+      </footer>
+    </div>
+  )
+}
