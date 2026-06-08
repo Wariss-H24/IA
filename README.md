@@ -1,3 +1,21 @@
+Le fichier README.md est créé à la racine IA/. Il couvre :
+
+Prérequis — Python, Node.js, Ollama avec les versions minimales
+
+Structure du projet en arborescence
+
+Installation backend (venv + pip) et frontend (npm)
+
+Configuration Ollama — local ou sur un autre poste réseau
+
+Démarrage des deux serveurs
+
+Indexation — quand la faire et quand ne pas la faire
+
+Utilisation — via l'interface web et via Swagger, avec exemples
+
+Conseils sur les questions et les fautes de frappe tolérées.
+
 # Chatbot Juridique IA
 
 Chatbot basé sur l'intelligence artificielle permettant d'interroger des documents PDF juridiques en langage naturel.  
