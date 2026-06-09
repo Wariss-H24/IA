@@ -6,3 +6,6 @@ langchain-text-splitters
 ollama
 pypdf
 python-multipart
+pandas
+python-docx
+openpyxl

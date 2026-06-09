@@ -132,7 +132,7 @@ export default function App() {
           >
             {uploading ? '⏳' : '📎'}
           </button>
-          <input ref={fileRef} type="file" accept=".pdf" onChange={handleUpload} hidden />
+          <input ref={fileRef} type="file" accept=".pdf,.txt,.tsx,.ts,.docx,.csv,.xlsx" onChange={handleUpload} hidden />
           <textarea
             className="input-box"
             value={input}

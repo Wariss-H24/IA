@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import shutil
 import os
 
-from app.chargement import charger_pdf
+from app.chargement import charger_document
 from app.indexation import indexer_document
 from app.chatbot_ai import rechercher, generer
 
@@ -31,7 +31,7 @@ async def upload(file: UploadFile = File(...)):
     with open(chemin, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    texte = charger_pdf(chemin)
+    texte = charger_document(chemin)
     nb_chunks = indexer_document(texte, file.filename)
 
     return {
